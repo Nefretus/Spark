@@ -1,16 +1,14 @@
-import findspark
-findspark.init(r'C:\Spark\spark-3.0.0-bin-hadoop2.7')
 from pyspark.sql import SparkSession
 from datetime import datetime, date
 import pandas as pd
 from pyspark.sql import Row
 from pyspark.sql.functions import col, explode
 
-spark = SparkSession.builder.master('spark://192.168.0.45:7077').getOrCreate()
+spark = SparkSession.builder.master('spark://192.168.193.141:7077').getOrCreate()
 #spark.sparkContext.setLogLevel("DEBUG")
 
 def load_files(spark, entities):
-    return [spark.read.json(rf'D:\DataSparkProj\{entity}\*') for entity in entities]
+    return [spark.read.json(rf'hdfs://localhost:9000/data/DataSparkProj/{entity}/*') for entity in entities]
 
 # liczba prac naukowych w zaleznosci od kraju
 def works_per_country(spark):
@@ -46,12 +44,6 @@ def works_per_year(spark, country_code):
                                               "works_count") \
         .orderBy("year")
     works_per_year_df.show()
-    import seaborn as sns
-    sns.set_theme()
-    g = sns.lineplot(works_per_year)
-    g.set_ylim(bottom=0)
-    g.set_xlim(2012, 2023)
-    g.set_ylabel("number of works")
 
 # liczba cytowan poszczegolnych prac wybranej osoby
 def citations_for_works_of_given_author(spark, orcid):
@@ -63,8 +55,8 @@ def citations_for_works_of_given_author(spark, orcid):
              f"AND '{orcid}' IN (SELECT col.orcid FROM (SELECT EXPLODE(authorships.author) FROM works W1 WHERE W1.id = W.id) WHERE col.orcid IS NOT NULL) "
               "ORDER BY W.cited_by_count DESC").show()
 
-#works_per_year(spark, 'US')
-citations_for_works_of_given_author(spark, r'https://orcid.org/0000-0003-3000-5390')
+works_per_year(spark, 'US')
+#citations_for_works_of_given_author(spark, r'https://orcid.org/0000-0003-3000-5390')
 
 spark.stop()
 
